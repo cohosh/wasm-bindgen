@@ -501,6 +501,7 @@ impl<'a> Context<'a> {
                 self.export_header = format!("var EXPORTED_SYMBOLS = [{}\"__wbg_init\", \"initSync\"];\n",
                                              &self.export_header);
                 self.imports_post.push_str("let wasm;\n");
+                self.imports_post.push_str("let module;\n");
                 init = self.gen_init(needs_manual_start, Some(&mut imports))?;
             }
         }
@@ -731,13 +732,11 @@ impl<'a> Context<'a> {
 
         let default_module_path = if !self.config.omit_default_module_path {
             match self.config.mode {
-                OutputMode::Web => format!(
-                    "\
+                OutputMode::Web => "\
                     if (typeof module_or_path === 'undefined') {{
-                        module_or_path = new URL('{stem}_bg.wasm', import.meta.url);
-                    }}",
-                    stem = self.config.stem()?
-                ),
+                        module_or_path = \"chrome://browser/content/torpreferences/lox/lox_wasm_bg.wasm\";
+                    }}"
+                .to_string(),
                 OutputMode::NoModules { .. } => "\
                     if (typeof module_or_path === 'undefined' && typeof script_src !== 'undefined') {
                         module_or_path = script_src.replace(/\\.js$/, '_bg.wasm');
