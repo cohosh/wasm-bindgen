@@ -850,7 +850,7 @@ impl<'a> Context<'a> {
                     }}
                 }}
 
-                function __wbg_get_imports() {{
+                function __wbg_get_imports(window) {{
                     const imports = {{}};
                     {imports_init}
                     return imports;
@@ -869,8 +869,9 @@ impl<'a> Context<'a> {
                     return wasm;
                 }}
 
-                function initSync(module{init_memory_arg}) {{
+                function initSync(module{init_memory_arg}, window) {{
                     if (wasm !== undefined) return wasm;
+                    const imports = getImports(window);
 
                     {init_stack_size}
                     if (typeof module !== 'undefined' && Object.getPrototypeOf(module) === Object.prototype)
@@ -891,7 +892,7 @@ impl<'a> Context<'a> {
                     return __wbg_finalize_init(instance, module{init_stack_size_arg});
                 }}
 
-                async function __wbg_init(module_or_path{init_memory_arg}) {{
+                async function __wbg_init(module_or_path{init_memory_arg}, window) {{
                     if (wasm !== undefined) return wasm;
 
                     {init_stack_size}
@@ -901,7 +902,7 @@ impl<'a> Context<'a> {
                         console.warn('using deprecated parameters for the initialization function; pass a single object instead')
 
                     {default_module_path}
-                    const imports = __wbg_get_imports();
+                    const imports = __wbg_get_imports(window);
 
                     if (typeof module_or_path === 'string' || (typeof Request === 'function' && module_or_path instanceof Request) || (typeof URL === 'function' && module_or_path instanceof URL)) {{
                         module_or_path = fetch(module_or_path);
@@ -2732,6 +2733,8 @@ impl<'a> Context<'a> {
                 }
             }
             Kind::Import(core) => {
+                let import = self.module.imports.get_mut(core);
+                println!("name: {}, code: {:?}", &import.name, instrs);
                 let code = if catch {
                     format!(
                         "function() {{ return handleError(function {}, arguments) }}",
@@ -2967,6 +2970,8 @@ impl<'a> Context<'a> {
         variadic: bool,
         prelude: &mut String,
     ) -> Result<String, Error> {
+        println!("kind: {:?}", kind);
+        println!("import: {:?}", import);
         let variadic_args = |js_arguments: &[String]| {
             Ok(if !variadic {
                 js_arguments.join(", ")
@@ -3144,6 +3149,7 @@ impl<'a> Context<'a> {
                 assert!(!variadic);
                 assert_eq!(args.len(), 0);
                 let class = self.import_name(class)?;
+                println!("class: {:?}, field: {:?}", class, field);
                 Ok(format!("{}{}", class, property_accessor(field)))
             }
 
