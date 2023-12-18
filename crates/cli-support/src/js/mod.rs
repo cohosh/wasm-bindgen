@@ -401,7 +401,7 @@ impl<'a> Context<'a> {
                 js.push_str("let wasm = undefined;\n");
                 init = self.gen_init(needs_manual_start, None)?;
                 footer.push_str(&format!(
-                    "{} = Object.assign(__wbg_init, {{ initSync }}, __exports);\n",
+                    "{} = Object.assign(init, {{ initSync }}, __exports);\n",
                     global
                 ));
             }
@@ -498,7 +498,7 @@ impl<'a> Context<'a> {
             // expose the same initialization function as `--target no-modules`
             // as the default export of the module.
             OutputMode::Web => {
-                self.export_header = format!("var EXPORTED_SYMBOLS = [{}\"__wbg_init\", \"initSync\"];\n",
+                self.export_header = format!("var EXPORTED_SYMBOLS = [{}\"init\", \"initSync\"];\n",
                                              &self.export_header);
                 self.imports_post.push_str("let wasm;\n");
                 self.imports_post.push_str("let module;\n");
@@ -672,7 +672,7 @@ impl<'a> Context<'a> {
                 memory_param = memory_param
             ));
 
-            setup_function_declaration = "export default function __wbg_init";
+            setup_function_declaration = "export default function init";
         }
         Ok(format!(
             "\n\
@@ -862,7 +862,7 @@ impl<'a> Context<'a> {
 
                 function __wbg_finalize_init(instance, module{init_stack_size_arg}) {{
                     wasm = instance.exports;
-                    __wbg_init.__wbindgen_wasm_module = module;
+                    init.__wbindgen_wasm_module = module;
                     {init_memviews}
                     {init_stack_size_check}
                     {start}
@@ -871,7 +871,6 @@ impl<'a> Context<'a> {
 
                 function initSync(module{init_memory_arg}, window) {{
                     if (wasm !== undefined) return wasm;
-                    const imports = getImports(window);
 
                     {init_stack_size}
                     if (typeof module !== 'undefined' && Object.getPrototypeOf(module) === Object.prototype)
@@ -879,7 +878,7 @@ impl<'a> Context<'a> {
                     else
                         console.warn('using deprecated parameters for `initSync()`; pass a single object instead')
 
-                    const imports = __wbg_get_imports();
+                    const imports = __wbg_get_imports(window);
 
                     __wbg_init_memory(imports{init_memory_arg});
 
@@ -892,7 +891,7 @@ impl<'a> Context<'a> {
                     return __wbg_finalize_init(instance, module{init_stack_size_arg});
                 }}
 
-                async function __wbg_init(module_or_path{init_memory_arg}, window) {{
+                async function init(module_or_path{init_memory_arg}, window) {{
                     if (wasm !== undefined) return wasm;
 
                     {init_stack_size}
@@ -3596,7 +3595,7 @@ impl<'a> Context<'a> {
                          `--target no-modules` and `--target web`"
                     );
                 }
-                "__wbg_init.__wbindgen_wasm_module".to_string()
+                "init.__wbindgen_wasm_module".to_string()
             }
 
             Intrinsic::Exports => {
